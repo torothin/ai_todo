@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <title>Todo App</title>
+  </head>
+  <body>
+    <h1>Todo List</h1>
+    <form action="/add" method="post">
+      <input type="text" name="todo" required />
+      <button type="submit">Add</button>
+    </form>
+    <ul>
+      {% for item in todos %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
