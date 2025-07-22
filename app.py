@@ -5,9 +5,8 @@ from authlib.integrations.flask_client import OAuth
 import os
 from dotenv import load_dotenv
 
-app = Flask(__name__)
 
-#needed to get secret from .env
+app = Flask(__name__)
 load_dotenv()
 
 client = boto3.client('cognito-idp', region_name='us-west-2')
@@ -30,22 +29,24 @@ oauth.register(
 @app.route('/')
 @app.route("/index")
 def index():
-    user = session.get('user')
-
+    user = getUser()
     if not user:
         return f'Welcome! Please <a href="/login">Login</a>.'
-
+    
     response = table.scan()
     todos = response.get('Items', [])
-
-    return render_template('index.html', todos=todos)
-
+    user = getUser()
+    filtered_todos = list(filter(lambda obj: obj["user"] != user, todos))
+    return render_template('index.html', todos=filtered_todos)
+    
 
 @app.route('/add', methods=['POST'])
 def add():
+
     todo = request.form.get('todo')
     if todo:
-        table.put_item(Item={'id': str(uuid.uuid4()), 'task': todo})
+        Item={'user':getUser()["sub"],'id': str(uuid.uuid4()), 'task': todo}
+        table.put_item(Item=Item)
     return redirect(url_for('index'))
 
 @app.route('/delete/<item_id>')
@@ -61,6 +62,9 @@ def login():
 
 @app.route('/authorize')
 def authorize():
+    token = None
+    user = None
+
     token = oauth.oidc.authorize_access_token()
     user = token['userinfo']
     session['user'] = user
@@ -80,6 +84,9 @@ def logout():
 
 def isActiveToken():
     return 'access_token' in session
+
+def getUser():
+    return session.get('user')
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', ssl_context='adhoc', port=443)
