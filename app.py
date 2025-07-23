@@ -4,6 +4,8 @@ import uuid
 from authlib.integrations.flask_client import OAuth
 import os
 from dotenv import load_dotenv
+from botocore.exceptions import ClientError
+import json
 
 
 app = Flask(__name__)
@@ -17,11 +19,38 @@ app.secret_key = os.urandom(24)  # Use a secure random key in production
 
 oauth = OAuth(app)
 
+def get_secret():
+
+    secret_name = "todo_oauth"
+    region_name = "us-west-2"
+
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        # For a list of exceptions thrown, see
+        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        raise e
+
+    return json.loads(get_secret_value_response['SecretString'])['COGNITO_CLIENT_SECRET']
+    
+
+
 oauth.register(
   name='oidc',
   authority='https://cognito-idp.us-west-2.amazonaws.com/us-west-2_iew2zwYMY',
   client_id='7588mruoo6qr8t3pghkdhi2upa',
-  client_secret=os.environ.get('COGNITO_CLIENT_SECRET'),
+  #client_secret=os.environ.get('COGNITO_CLIENT_SECRET'),
+  #client_secret=session.client(service_name='secretsmanager', region_name='us-west-2').get_secret_value(SecretId='COGNITO_CLIENT_SECRET')
+  client_secret=get_secret(),
   server_metadata_url='https://cognito-idp.us-west-2.amazonaws.com/us-west-2_iew2zwYMY/.well-known/openid-configuration',
   client_kwargs={'scope': 'email openid phone'}
 )
@@ -82,4 +111,4 @@ def getUser():
     return session.get('user')
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000)
+    app.run(host='0.0.0.0', ssl_context='adhoc',port=443)
