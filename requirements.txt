@@ -3,3 +3,4 @@ boto3
 authlib 
 werkzeug
 requests
+dotenv

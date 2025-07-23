@@ -70,13 +70,6 @@ def authorize():
     session['user'] = user
     return redirect(url_for('index'))
 
-@app.route('/protected')
-def protected():
-    if isActiveToken():
-        return redirect('/')
-    else:
-        return redirect('/login')
-
 @app.route('/logout')
 def logout():
     session.pop('user', None)
@@ -89,4 +82,4 @@ def getUser():
     return session.get('user')
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', ssl_context='adhoc', port=443)
+    app.run(host='0.0.0.0', port=8000)
